@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>html{color-scheme:dark}body{margin:0}</style>
+<title>旭川ゆけむり湯</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* Layout: one narrow column like a handheld screen — status bar, the bathhouse board, the build tray, then staff, prices and the forecast. */
+:root{
+  --night:#18202f;      /* winter night outside the bathhouse */
+  --panel:#222c40;      /* lacquered panel */
+  --panel-2:#2b3650;
+  --paper:#f2ead8;      /* shoji paper, main text */
+  --muted:#9ea8bd;
+  --hinoki:#e3b765;     /* cypress wood, accent */
+  --steam:#a9d8e6;      /* hot water */
+  --good:#8fd18a;
+  --bad:#ef8a6a;
+  --line:#3a4663;
+  --font-dot:"DotGothic16","Hiragino Kaku Gothic ProN","Meiryo",monospace;
+  --font-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{background:var(--night);color:var(--paper)}
+body{font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+header>div{min-width:0;flex:1 1 220px}
+h1{font-family:var(--font-dot);font-weight:400;font-size:24px;margin:0;letter-spacing:.06em;text-wrap:balance;word-break:keep-all;color:var(--hinoki)}
+.sub{margin:0;color:var(--muted);font-size:13px}
+.hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-family:var(--font-dot)}
+.hud div{background:var(--panel);border:1px solid var(--line);padding:6px 8px;min-width:0}
+.hud small{display:block;color:var(--muted);font-size:11px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud b{font-weight:400;font-size:clamp(13px,3.8vw,16px);line-height:1.35;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;display:block}
+.board{position:relative;border:3px solid var(--hinoki);background:#0e131d;line-height:0}
+canvas#c{width:100%;height:auto;aspect-ratio:1/1;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:pan-y;display:block;max-width:100%}
+.toast{position:absolute;left:50%;top:44%;z-index:2;transform:translateX(-50%);background:var(--paper);color:var(--night);font-family:var(--font-dot);font-size:14px;line-height:1.4;padding:6px 12px;pointer-events:none;max-width:90%;text-align:center}
+.banner{position:absolute;left:0;right:0;top:0;background:rgba(14,19,29,.86);color:var(--paper);font-family:var(--font-dot);font-size:13px;line-height:1.5;padding:6px 10px;pointer-events:none}
+.info{font-family:var(--font-dot);font-size:13px;line-height:1.5;background:var(--panel);border:1px solid var(--line);padding:6px 10px;min-height:2.6em;overflow-wrap:anywhere}
+.info .ok{color:var(--good)}.info .ng{color:var(--bad)}
+.checklist{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;margin:0;padding:0;list-style:none}
+.checklist li{white-space:nowrap}
+.checklist .done{color:var(--good)}
+.checklist .todo{color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+button{font-family:var(--font-dot);font-size:15px;color:var(--paper);background:var(--panel-2);border:1px solid var(--line);padding:6px 10px;cursor:pointer;min-height:38px}
+button:hover{border-color:var(--hinoki)}
+button:focus-visible{outline:2px solid var(--hinoki);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--hinoki);color:var(--night);border-color:var(--hinoki)}
+button.primary{background:var(--hinoki);color:var(--night);border-color:var(--hinoki)}
+button.small{font-size:12px;min-height:28px;padding:2px 8px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{flex:1 1 0;min-width:0;padding:6px 4px;font-size:14px}
+.tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tool{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;line-height:1.25;min-width:0}
+.tool canvas{width:32px;height:32px;image-rendering:pixelated}
+.tool span{font-size:13px;text-align:center}
+.tool em{font-style:normal;font-size:11px;color:var(--muted)}
+.tool[aria-pressed="true"] em{color:var(--night)}
+.sizes{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-family:var(--font-dot);font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.panel h2{font-family:var(--font-dot);font-weight:400;font-size:16px;margin:0;color:var(--hinoki)}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.prow .lbl{min-width:0;font-size:14px;line-height:1.35}
+.prow .lbl small{display:block;color:var(--muted);font-size:12px}
+.stepper{display:flex;align-items:center;gap:4px;font-family:var(--font-dot)}
+.stepper output{min-width:4.6em;text-align:center;font-size:16px;font-variant-numeric:tabular-nums}
+.stepper button{min-width:38px;padding:4px 0}
+.bossrow{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.bossrow span{font-size:13px;color:var(--muted);margin-right:4px}
+.formula{font-family:var(--font-dot);font-size:13px;line-height:1.9;color:var(--paper);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.formula .op{color:var(--muted)}
+.howto{color:var(--muted);font-size:13px;margin:0}
+.howto b{color:var(--paper);font-weight:700}
+.note{color:var(--muted);font-size:12px;margin:0}
+.modal{position:fixed;inset:0;background:rgba(10,13,20,.78);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;z-index:20;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.card{background:var(--panel);border:3px solid var(--hinoki);max-width:480px;width:100%;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card h3{font-family:var(--font-dot);font-weight:400;font-size:19px;margin:0;color:var(--hinoki);text-wrap:balance}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+td{padding:3px 0;border-bottom:1px dashed var(--line);vertical-align:top}
+td:last-child{text-align:right;font-family:var(--font-dot);padding-left:8px}
+tr.total td{border-bottom:none;font-weight:700;padding-top:6px}
+tr.sub td{font-size:12px;color:var(--muted);padding:1px 0}
+tr.sub td.neg{color:var(--bad)}
+tr.sub td.pos{color:var(--good)}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+.sec{font-family:var(--font-dot);color:var(--hinoki);font-size:14px;margin-top:4px}
+.voices{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.voices li{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px;padding:5px 8px;background:var(--panel-2)}
+.voices .q{min-width:0}
+.voices .n{font-family:var(--font-dot);white-space:nowrap;color:var(--muted)}
+.tg{font-style:normal;font-family:var(--font-dot);font-size:11px;padding:0 5px;border:1px solid currentColor;margin-right:6px;white-space:nowrap}
+.tg.bad{color:var(--bad)}.tg.good{color:var(--good)}.tg.flavor{color:var(--steam)}
+.hints{margin:0;padding-left:1.2em;font-size:14px}
+.hints li{margin:2px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1 1 180px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head><body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-t="title">旭川ゆけむり湯</h1>
+      <p class="sub" data-t="sub"></p>
+    </div>
+    <button id="modeBtn" class="small"></button>
+  </header>
+
+  <div class="hud" aria-live="polite">
+    <div><small data-t="hud_date"></small><b id="hDate">-</b></div>
+    <div><small data-t="hud_money"></small><b id="hMoney">-</b></div>
+    <div><small data-t="hud_rep"></small><b id="hRep">-</b></div>
+    <div><small data-t="hud_visit"></small><b id="hVisit">-</b></div>
+    <div><small data-t="hud_wait"></small><b id="hWait">-</b></div>
+    <div><small data-t="hud_clean"></small><b id="hClean">-</b></div>
+  </div>
+
+  <div class="board">
+    <canvas id="c" width="256" height="256" aria-label="銭湯の見取り図"></canvas>
+    <div class="toast" id="toast" hidden></div>
+    <div class="banner" id="banner" hidden></div>
+  </div>
+  <div class="info" id="info"></div>
+  <ul class="checklist" id="check"></ul>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="速度">
+      <button id="sp0" data-sp="0"></button>
+      <button id="sp1" data-sp="1">×1</button>
+      <button id="sp2" data-sp="2">×2</button>
+      <button id="sp4" data-sp="4">×4</button>
+      <button id="sp8" data-sp="8">×8</button>
+    </div>
+    <button id="openBtn" class="primary" data-t="open_btn"></button>
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="sizes" id="sizes" hidden></div>
+  <div class="tools" id="tools" role="group"></div>
+
+  <section class="panel">
+    <h2 data-t="panel_staff"></h2>
+    <div id="staff"></div>
+    <div class="bossrow" id="boss"></div>
+    <p class="note" id="staffNote"></p>
+  </section>
+
+  <section class="panel">
+    <h2 data-t="panel_price"></h2>
+    <div id="prices"></div>
+    <p class="note" data-t="price_note"></p>
+  </section>
+
+  <section class="panel">
+    <h2 id="mTitle"></h2>
+    <div class="formula" id="formula"></div>
+  </section>
+
+  <p class="howto" id="howto"></p>
+  <p class="note"><span data-t="data_note"></span> <button id="reset" class="small"></button></p>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="rTitle">
+    <h3 id="rTitle"></h3>
+    <div id="rBody"></div>
+    <div class="row">
+      <button id="rPause"></button>
+      <button id="rGo" class="primary"></button>
+    </div>
+  </div>
+</div>
+
+<script id="core">
+const SIM=(()=>{
+  const W=16,H=16,ENT={x:7,y:15};
+  const POP=309974,SHARE=0.03,RATE=0.01;
+  const AGE={child:0.0979,adult:0.5481,elder:0.3541};
+  const GW={child:{wd:0.6,hd:1.5},adult:{wd:0.8,hd:1.45},elder:{wd:1.4,hd:1.4}};
+  const STD={adult:550,child:150};
+  const WAGE=1131,HOURS=12;
+  const TEMPS=[-7.0,-6.0,-1.4,5.6,12.3,17.0,20.7,21.2,16.4,9.4,2.3,-4.2];
+  const OPEN=600,LAST_IN=1275,CLOSE=1320,FORCE=1410;
+  const FLOOR={wood:{cost:10000},tile:{cost:15000}};
+  const WARM=['b_normal','b_hot','b_warm','b_open'];
+  const OBJ={
+    shoe:{cost:50000,up:100,capT:3},
+    reception:{cost:150000,up:300,capT:1},
+    locker:{cost:120000,up:300,capT:3},
+    wash:{cost:150000,up:500,capT:2},
+    b_normal:{cost:250000,up:600,capT:2,bath:1,heat:1.0},
+    b_hot:{cost:280000,up:700,capT:2,bath:1,heat:1.25},
+    b_warm:{cost:260000,up:600,capT:2,bath:1,heat:0.8},
+    b_cold:{cost:220000,up:400,capT:2,bath:1,heat:0,elec:600},
+    b_open:{cost:500000,up:900,capT:2,bath:1,heat:1.3},
+    b_sauna:{cost:400000,up:800,capT:3,bath:1,heat:0,elec:1500},
+    vending:{cost:200000,up:200,capT:1,elec:300},
+    rest:{cost:80000,up:200,capT:2},
+    food:{cost:600000,up:1500,capT:2,size:[2,1],gas:2000},
+    play:{cost:300000,up:500,capT:1.5,size:[2,2]},
+    arcade:{cost:700000,up:800,capT:1.5,size:[2,1],elec:1500},
+  };
+  const REQUIRED=['reception','locker','main'];
+  const OPTIONAL=['b_open','b_sauna','b_cold','b_normal','b_hot','b_warm','vending','rest','food','play','arcade'];
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+  function objCost(k,w,h){const o=OBJ[k];return o.bath?Math.round(o.cost*w*h*(w*h===4?0.9:1)):o.cost}
+  function objUp(o){const d=OBJ[o.k];return d.bath?d.up*o.w*o.h:d.up}
+  function objCap(o){return Math.max(1,Math.round(OBJ[o.k].capT*o.w*o.h))}
+
+  function newGame(){
+    const floor=[];for(let y=0;y<H;y++)floor.push(Array(W).fill('ground'));
+    return {v:2,year:2026,month:10,money:5000000,rep:1.0,prices:{wd:550,hd:550,child:150},
+      floor,objs:[],nextObj:1,staff:{reception:0,clean:0,pr:0,cook:0},boss:'reception',
+      history:[],phase:'build',dayIdx:0,days:[]};
+  }
+  function eff(g,role){return (g.staff[role]||0)+(g.boss===role?1:0)}
+  function hired(g){return Object.values(g.staff).reduce((a,b)=>a+b,0)}
+  function count(g,k){return g.objs.filter(o=>o.k===k).length}
+  function hasWarm(g){return g.objs.some(o=>WARM.includes(o.k))}
+
+  function countDays(year,month){
+    const n=new Date(year,month+1,0).getDate();let hd=0;
+    for(let i=1;i<=n;i++){const w=new Date(year,month,i).getDay();if(w===0||w===6)hd++}
+    return [n-hd,hd];
+  }
+
+  function attraction(g,group){
+    let a=0;
+    if(count(g,'b_open'))a+=0.08;
+    if(count(g,'b_sauna')&&count(g,'b_cold'))a+=group==='adult'?0.12:group==='elder'?0.05:0;
+    if(group==='child'){if(count(g,'play'))a+=0.15;if(count(g,'arcade'))a+=0.15;}
+    if(count(g,'food')&&eff(g,'cook')>0&&group!=='child')a+=0.05;
+    const kinds=new Set(g.objs.filter(o=>WARM.includes(o.k)).map(o=>o.k)).size;
+    if(kinds>=3)a+=0.05;
+    return a;
+  }
+  function demand(g,type){
+    const temp=TEMPS[g.month];
+    const tf=clamp(1+(12-temp)*0.025,0.7,1.6);
+    const adultP=type==='hd'?g.prices.hd:g.prices.wd;
+    const pfA=Math.pow(STD.adult/adultP,1.3),pfC=Math.pow(STD.child/g.prices.child,0.8);
+    const pr=1+0.1*Math.min(eff(g,'pr'),5);
+    const out={temp,tf,pfA,pfC,pr,rep:g.rep,groups:{},total:0};
+    for(const k of ['child','adult','elder']){
+      const v=POP*AGE[k]*SHARE*RATE*GW[k][type]*tf*(k==='child'?pfC:pfA)*g.rep*pr*(1+attraction(g,k));
+      out.groups[k]=v;out.total+=v;
+    }
+    return out;
+  }
+
+  const HW={
+    elder:[1.2,1.4,1.5,1.6,1.7,1.6,1.3,1.0,0.7,0.5,0.3,0.1],
+    adult:[0.3,0.3,0.4,0.4,0.5,0.6,0.9,1.4,1.8,1.8,1.4,0.6],
+    child_wd:[0.1,0.1,0.1,0.2,0.4,0.8,1.2,1.4,1.2,0.8,0.3,0.05],
+    child_hd:[0.6,0.8,0.9,1.0,1.1,1.2,1.3,1.2,1.0,0.6,0.2,0.05],
+  };
+  function pickHour(wts,rnd){const tot=wts.reduce((a,b)=>a+b,0);let r=rnd()*tot,h=0;while(h<wts.length-1&&r>wts[h]){r-=wts[h];h++}return h}
+
+  function startDay(g,type,rnd=Math.random){
+    const dm=demand(g,type);
+    const arr=[];
+    for(const k of ['child','adult','elder']){
+      const n=Math.max(0,Math.round(dm.groups[k]*(0.9+rnd()*0.2)));
+      const wts=k==='child'?HW['child_'+type]:HW[k];
+      for(let i=0;i<n;i++){const h=pickHour(wts,rnd);arr.push({t:Math.min(LAST_IN,OPEN+h*60+rnd()*(h===11?15:60)),g:k})}
+    }
+    arr.sort((a,b)=>a.t-b.t);
+    const d={type,clock:OPEN,arrivals:arr,ai:0,cust:[],done:[],slot:{},clean:100,
+      rev:{bath:0,vend:0,food:0,arcade:0},missing:{},over:false,nextId:1};
+    refresh(g,d);
+    return d;
+  }
+
+  function refresh(g,d){
+    const map=new Int32Array(W*H).fill(-1);const byId=new Map();const cnt={};
+    for(const o of g.objs){byId.set(o.id,o);cnt[o.k]=(cnt[o.k]||0)+1;
+      for(let y=o.y;y<o.y+o.h;y++)for(let x=o.x;x<o.x+o.w;x++)map[y*W+x]=o.id;
+      if(!d.slot[o.id])d.slot[o.id]=Array(objCap(o)).fill(0);}
+    for(const id of Object.keys(d.slot))if(!byId.has(+id))delete d.slot[id];
+    const recs=g.objs.filter(o=>o.k==='reception').sort((a,b)=>a.id-b.id).slice(0,eff(g,'reception'));
+    d.map=map;d.byId=byId;d.cnt=cnt;d.openRec=new Set(recs.map(o=>o.id));
+  }
+  function isOpen(g,d,o){
+    if(o.k==='reception')return d.openRec.has(o.id);
+    if(o.k==='food')return eff(g,'cook')>0;
+    return true;
+  }
+  function inUse(d,id){return d&&d.slot[id]?d.slot[id].some(v=>v):false}
+
+  /* ---- path finding (Dijkstra, costs steer naked people off the wooden hallway) ---- */
+  const dist=new Float64Array(W*H),prev=new Int32Array(W*H);
+  function heapPush(h,p,n){h.push([p,n]);let i=h.length-1;while(i>0){const j=(i-1)>>1;if(h[j][0]<=h[i][0])break;[h[i],h[j]]=[h[j],h[i]];i=j}}
+  function heapPop(h){const top=h[0];const last=h.pop();if(h.length){h[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<h.length&&h[l][0]<h[m][0])m=l;if(r<h.length&&h[r][0]<h[m][0])m=r;if(m===i)break;[h[i],h[m]]=[h[m],h[i]];i=m}}return top}
+  function findTarget(g,d,c,kinds){
+    const exit=kinds==='exit';
+    const sx=Math.round(c.x),sy=Math.round(c.y),start=sy*W+sx,ent=ENT.y*W+ENT.x;
+    dist.fill(Infinity);dist[start]=0;prev[start]=-1;
+    const h=[[0,start]];let sawFull=false;
+    const pathTo=u=>{const p=[];while(u!==start&&u!==-1){p.unshift({x:u%W,y:(u/W)|0});u=prev[u]}return p};
+    if(!exit&&d.map[start]>=0){const o=d.byId.get(d.map[start]);
+      if(o&&kinds.includes(o.k)&&isOpen(g,d,o)){if(d.slot[o.id].some(v=>!v))return {path:[],obj:o};sawFull=true}}
+    while(h.length){
+      const [du,u]=heapPop(h);if(du>dist[u])continue;
+      if(u!==start){
+        if(exit){if(u===ent)return {path:pathTo(u)}}
+        else{const id=d.map[u];if(id>=0){const o=d.byId.get(id);if(d.slot[id].some(v=>!v))return {path:pathTo(u),obj:o};sawFull=true;continue}}
+      }
+      const ux=u%W,uy=(u/W)|0;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const vx=ux+dx,vy=uy+dy;if(vx<0||vy<0||vx>=W||vy>=H)continue;
+        const v=vy*W+vx;let cost;const id=d.map[v];
+        if(v===ent){if(!exit)continue;cost=1}
+        else if(id>=0){if(exit)continue;const o=d.byId.get(id);if(!kinds.includes(o.k)||!isOpen(g,d,o))continue;cost=1}
+        else{const f=g.floor[vy][vx];if(f==='ground')continue;cost=1+(f==='wood'&&c.naked?5:0)+(f==='tile'&&!c.naked?3:0)}
+        const nd=du+cost;if(nd<dist[v]){dist[v]=nd;prev[v]=u;heapPush(h,nd,v)}
+      }
+    }
+    return sawFull?{full:true}:null;
+  }
+
+  /* ---- customers ---- */
+  const WISHPEN={open:2,sauna:3,nocold:6,vending:1,rest:3,food:0,play:5,arcade:2};
+  const P={open:{child:.4,adult:.55,elder:.45},sauna:{child:.05,adult:.35,elder:.12},
+    vending:{child:.6,adult:.35,elder:.2},rest:{child:.1,adult:.3,elder:.6},food:{child:.3,adult:.3,elder:.25},
+    play:{child:.7,adult:.05,elder:0},arcade:{child:.6,adult:.15,elder:.03}};
+  const MAINP={child:[['b_warm',.6],['b_normal',.4]],adult:[['b_normal',.5],['b_hot',.35],['b_warm',.15]],elder:[['b_hot',.55],['b_normal',.35],['b_warm',.1]]};
+  const SHIRTS=['#d9534f','#5b8fd9','#e3b765','#6cbf6a','#b07cd8','#e08a3c','#4fb3b3','#c9c9c9'];
+  const newPen=()=>({wait:0,crowd:0,nowash:0,floor:0,dirty:0,wish:0,price:0,far:0,angry:0,noshoe:0,relax:0,fun:0,spa:0});
+
+  function spawn(g,d,group,rnd){
+    const has=k=>(d.cnt[k]||0)>0;
+    const steps=['shoe','reception','locker','wash'];const wish=[];
+    let r=rnd(),main='b_normal';for(const [k,p] of MAINP[group]){if(r<p){main=k;break}r-=p}
+    steps.push('main:'+main);
+    if(rnd()<P.open[group]){if(has('b_open'))steps.push('b_open');else wish.push('open')}
+    if(rnd()<P.sauna[group]){if(has('b_sauna')){steps.push('b_sauna');if(has('b_cold'))steps.push('b_cold');else wish.push('nocold')}else wish.push('sauna')}
+    if(rnd()<0.3){const others=['b_normal','b_hot','b_warm'].filter(k=>k!==main&&has(k));if(others.length)steps.push(others[Math.floor(rnd()*others.length)])}
+    steps.push('locker');
+    const extra=[];
+    for(const k of ['vending','rest','food','play','arcade']){if(rnd()<P[k][group]){if(has(k))extra.push(k);else wish.push(k)}}
+    for(let i=extra.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[extra[i],extra[j]]=[extra[j],extra[i]]}
+    steps.push(...extra,'shoe','exit');
+    const c={id:d.nextId++,group,x:ENT.x,y:ENT.y,ox:rnd()*6-3,oy:rnd()*4-2,steps,si:0,state:'seek',path:[],
+      obj:null,slotI:-1,use:0,waitStep:0,waitTotal:0,waitBy:{},nextTry:0,sat:80,pen:newPen(),naked:false,lockers:0,
+      wish,flags:{},angry:false,angryAt:null,dist:0,shirt:SHIRTS[Math.floor(rnd()*SHIRTS.length)],paid:0};
+    for(const w of wish){c.pen.wish+=WISHPEN[w];c.sat-=WISHPEN[w]}
+    d.cust.push(c);
+  }
+
+  function stepKey(s){return s.startsWith('main:')?'main':s}
+  function kindsFor(g,d,c,s){
+    if(s.startsWith('main:')){
+      const want=s.slice(5);
+      if((d.cnt[want]||0)>0)return [want];
+      const alt=WARM.filter(k=>(d.cnt[k]||0)>0);
+      if(alt.length&&!c.flags['fallback']){c.flags['fallback']=1;const wk='main_'+want.slice(2);c.wish.push(wk);c.pen.wish+=3;c.sat-=3}
+      return alt;
+    }
+    return [s];
+  }
+  function bad(c,key,v){c.pen[key]+=v;c.sat-=v}
+  function good(c,key,v){c.pen[key]+=v;c.sat+=v}
+  function leaveAngry(c,kind){
+    c.angryAt=kind;c.angry=true;c.pen.angry+=Math.max(0,c.sat-10);c.sat=Math.min(c.sat,10);
+    c.steps=c.steps.slice(0,c.si).concat(c.naked?['locker','exit']:['exit']);
+  }
+  function duration(o,c,temp,rnd){
+    const e=c.group==='elder',ch=c.group==='child';
+    switch(o.k){
+      case 'shoe':return 0.6;
+      case 'reception':return 1.0;
+      case 'locker':return (c.lockers===0?4:5)+(e?2:0);
+      case 'wash':return 6+rnd()*3+(e?2:0)-(ch?2:0);
+      case 'b_normal':return 10+rnd()*8+Math.max(0,5-temp)*0.3;
+      case 'b_hot':return 6+rnd()*5;
+      case 'b_warm':return 12+rnd()*10;
+      case 'b_open':return 12+rnd()*10;
+      case 'b_sauna':return 8+rnd()*4;
+      case 'b_cold':return 2+rnd()*2;
+      case 'vending':return 0.6;
+      case 'rest':return 8+rnd()*10+(e?5:0);
+      case 'food':return 15+rnd()*10;
+      case 'play':return 12+rnd()*12;
+      case 'arcade':return 8+rnd()*8;
+    }
+    return 1;
+  }
+  function useDone(g,d,c,o,temp,rnd){
+    const ch=c.group==='child',e=c.group==='elder';
+    switch(o.k){
+      case 'reception':{
+        const p=ch?g.prices.child:(d.type==='hd'?g.prices.hd:g.prices.wd);
+        d.rev.bath+=p;c.paid=p;
+        const pp=ch?Math.max(0,(p-STD.child)/10):Math.max(0,(p-STD.adult)/20);
+        if(pp>0)bad(c,'price',pp);
+        if(!ch&&p<=450)c.flags.cheap=1;
+        break;}
+      case 'locker':c.lockers++;c.naked=c.lockers===1;break;
+      case 'wash':c.flags.washed=1;d.clean-=0.12;break;
+      case 'vending':d.rev.vend+=130;good(c,'fun',3);c.flags.drank=1;break;
+      case 'rest':good(c,'relax',e?10:6);c.flags.rested=1;break;
+      case 'food':d.rev.food+=ch?500:800;good(c,'fun',5);c.flags.ate=1;break;
+      case 'play':good(c,'fun',ch?10:3);c.flags.played=1;break;
+      case 'arcade':d.rev.arcade+=100*(1+Math.floor(rnd()*3));good(c,'fun',ch?7:4);c.flags.arcade=1;break;
+      default:
+        if(OBJ[o.k].bath){
+          c.flags.bathed=1;d.clean-=0.2;
+          if(d.clean<60){bad(c,'dirty',(60-d.clean)/10);c.flags.dirty=1}
+          if(o.k==='b_open'){if(temp<0){good(c,'spa',8);c.flags.snow=1}else{good(c,'spa',5);c.flags.openJoy=1}}
+          if(o.k==='b_sauna'){c.flags.sauna=1;good(c,'spa',2)}
+          if(o.k==='b_cold'&&c.flags.sauna){good(c,'spa',8);c.flags.totonou=1}
+          if(o.k==='b_hot'&&e)good(c,'spa',3);
+          if(o.k==='b_warm'&&ch)good(c,'spa',3);
+        }
+    }
+  }
+
+  function stepCust(g,d,c,dt,rnd){
+    const temp=TEMPS[g.month];
+    const s=c.steps[c.si],key=stepKey(s);
+    if(c.state==='seek'){
+      if(d.clock<c.nextTry){c.waitStep+=dt;c.waitTotal+=dt;c.waitBy[key]=(c.waitBy[key]||0)+dt;bad(c,'wait',dt*1.2);checkWait(g,d,c,s,key);return}
+      const kinds=s==='exit'?'exit':kindsFor(g,d,c,s);
+      if(kinds!=='exit'&&!kinds.length){noTarget(g,d,c,s,key);return}
+      const r=findTarget(g,d,c,kinds);
+      if(r&&!r.full){
+        c.obj=r.obj||null;c.slotI=-1;
+        c.waitStep=0;c.path=r.path;c.state='walk';return;
+      }
+      if(r===null){noTarget(g,d,c,s,key);return}
+      c.nextTry=d.clock+0.5;c.waitStep+=dt;c.waitTotal+=dt;c.waitBy[key]=(c.waitBy[key]||0)+dt;bad(c,'wait',dt*1.2);
+      checkWait(g,d,c,s,key);
+      return;
+    }
+    if(c.state==='walk'){
+      const sp=(c.group==='elder'?0.75:c.group==='child'?1.3:1.1)*dt;let move=sp;
+      while(move>0&&c.path.length){
+        const p=c.path[0];const dx=p.x-c.x,dy=p.y-c.y;const dd=Math.abs(dx)+Math.abs(dy);
+        if(dd<=move){c.x=p.x;c.y=p.y;move-=dd;c.path.shift();c.dist++;
+          if(d.map[p.y*W+p.x]<0&&!(p.x===ENT.x&&p.y===ENT.y)){
+            const f=g.floor[p.y][p.x];
+            if(f==='wood'&&c.naked&&!c.flags.wood){c.flags.wood=1;bad(c,'floor',8)}
+            if(f==='tile'&&!c.naked&&!c.flags.tile){c.flags.tile=1;bad(c,'floor',4)}
+          }}
+        else{c.x+=Math.sign(dx)*Math.min(move,Math.abs(dx));c.y+=Math.sign(dy)*Math.min(move,Math.abs(dy));move=0}
+      }
+      if(!c.path.length){
+        if(s==='exit'){c.state='gone';return}
+        const o=c.obj,sl=o&&d.slot[o.id];
+        if(!sl){c.obj=null;c.state='seek';return}
+        const i=sl.indexOf(0);
+        if(i<0){c.obj=null;c.state='seek';c.nextTry=d.clock+0.3;return}
+        sl[i]=c.id;c.slotI=i;
+        if(OBJ[o.k].bath&&sl.length>=2&&sl.filter(v=>v).length/sl.length>0.75&&!c.flags['crowd_'+o.id]){c.flags['crowd_'+o.id]=1;c.flags.crowd=1;bad(c,'crowd',3)}
+        c.state='use';c.use=duration(o,c,temp,rnd);
+      }
+      return;
+    }
+    if(c.state==='use'){
+      c.use-=dt;
+      if(c.use<=0){
+        const o=c.obj;const sl=d.slot[o.id];if(sl&&c.slotI>=0)sl[c.slotI]=0;
+        useDone(g,d,c,o,temp,rnd);
+        c.obj=null;c.slotI=-1;c.si++;c.state='seek';c.nextTry=0;
+      }
+    }
+  }
+  function checkWait(g,d,c,s,key){
+    const required=REQUIRED.includes(key);
+    if(c.angry&&c.waitStep>=30){c.steps=c.steps.slice(0,c.si).concat(['exit']);c.naked=false;c.waitStep=0;return}
+    if(required&&c.waitStep>=30){c.waitStep=0;leaveAngry(c,key);return}
+    if(!required&&s!=='exit'&&c.waitStep>=(key==='shoe'||key==='wash'?20:8)){
+      c.waitStep=0;c.flags['gaveup_'+key]=1;c.si++;c.nextTry=0;
+    }
+  }
+  function noTarget(g,d,c,s,key){
+    if(s==='exit'){c.state='gone';return}
+    if(key==='reception'){
+      if((d.cnt.reception||0)>0&&d.openRec.size===0){c.flags.nostaff=1}else{c.flags['missing_reception']=1}
+      d.missing.reception=(d.missing.reception||0)+1;leaveAngry(c,null);return;
+    }
+    if(key==='locker'||key==='main'){c.flags['missing_'+key]=1;d.missing[key]=(d.missing[key]||0)+1;leaveAngry(c,null);return}
+    if(key==='wash'){c.flags.nowash=1;bad(c,'nowash',15);c.si++;return}
+    if(key==='shoe'){if(!c.flags.noshoe){c.flags.noshoe=1;bad(c,'noshoe',3)}c.si++;return}
+    if(key==='food'&&(d.cnt.food||0)>0&&eff(g,'cook')===0){c.flags.nocook=1;bad(c,'wish',2);c.si++;return}
+    if((d.cnt[key]||0)>0)c.flags['missing_'+key]=1;
+    c.si++;
+  }
+  function finish(g,c){
+    if(c.dist>50){bad(c,'far',5);c.flags.far=1}
+    c.sat=clamp(c.sat,0,100);
+  }
+
+  function tick(g,d,dt,rnd=Math.random){
+    if(d.over)return;
+    d.clock+=dt;
+    d.clean=Math.min(100,d.clean+eff(g,'clean')*0.12*dt);
+    if(d.clean<0)d.clean=0;
+    while(d.ai<d.arrivals.length&&d.arrivals[d.ai].t<=d.clock){spawn(g,d,d.arrivals[d.ai].g,rnd);d.ai++}
+    for(const c of d.cust)stepCust(g,d,c,dt,rnd);
+    for(const c of d.cust)if(c.state==='gone'){finish(g,c);d.done.push(c)}
+    d.cust=d.cust.filter(c=>c.state!=='gone');
+    if(d.clock>=CLOSE&&d.ai>=d.arrivals.length&&d.cust.length===0)d.over=true;
+    if(d.clock>=FORCE){for(const c of d.cust){if(c.obj&&c.slotI>=0&&d.slot[c.obj.id])d.slot[c.obj.id][c.slotI]=0;finish(g,c);d.done.push(c)}d.cust=[];d.over=true}
+  }
+
+  function summarizeDay(g,d){
+    const all=d.done;const n=all.length;
+    const pen=newPen();for(const c of all)for(const k in pen)pen[k]+=c.pen[k];
+    const waits={};for(const c of all)for(const [k,v] of Object.entries(c.waitBy)){waits[k]=waits[k]||[0,0];waits[k][0]+=v;waits[k][1]++}
+    return {type:d.type,visitors:n,groups:{child:all.filter(c=>c.group==='child').length,adult:all.filter(c=>c.group==='adult').length,elder:all.filter(c=>c.group==='elder').length},
+      bathed:all.filter(c=>c.flags.bathed).length,angry:all.filter(c=>c.angry).length,
+      satSum:all.reduce((a,c)=>a+c.sat,0),pen,waits,rev:{...d.rev},missing:{...d.missing},cust:all.map(c=>({group:c.group,sat:c.sat,flags:c.flags,wish:c.wish,angryAt:c.angryAt,angry:c.angry,waitBy:c.waitBy,waitTotal:c.waitTotal,pen:c.pen}))};
+  }
+
+  function makeVoices(g,cust,temp){
+    const N=cust.length;if(!N)return [];
+    const out=[];const add=(key,n,kind,a)=>{if(n>0)out.push({key,n,kind,a})};
+    const cnt=f=>cust.filter(f).length;
+    for(const k of ['reception','locker','main'])add('angry:'+k,cnt(c=>c.angryAt===k),'bad');
+    for(const k of ['shoe','reception','locker','wash','main','b_open','b_sauna','b_cold','vending','rest','food','play','arcade'])
+      add('slow:'+k,cnt(c=>c.angryAt!==k&&(c.waitBy[k]||0)>=5),'bad');
+    add('nostaff',cnt(c=>c.flags.nostaff),'bad');
+    for(const k of ['reception','locker','main','vending','rest','food','play','arcade','b_open','b_sauna','b_cold'])add('missing:'+k,cnt(c=>c.flags['missing_'+k]),'bad');
+    add('wood',cnt(c=>c.flags.wood),'bad');
+    add('tile',cnt(c=>c.flags.tile),'bad');
+    add('crowd',cnt(c=>c.flags.crowd),'bad');
+    add('nowash',cnt(c=>c.flags.nowash),'bad');
+    add('dirty',cnt(c=>c.flags.dirty),'bad');
+    add('far',cnt(c=>c.flags.far),'bad');
+    add('noshoe',cnt(c=>c.flags.noshoe),'bad');
+    add('nocook',cnt(c=>c.flags.nocook),'bad');
+    add('price',cnt(c=>c.group!=='child'&&c.pen.price>=3),'bad',Math.max(g.prices.wd,g.prices.hd));
+    add('cprice',cnt(c=>c.group==='child'&&c.pen.price>=3),'bad',g.prices.child);
+    for(const w of ['sauna','open','nocold','rest','vending','play','arcade','food','main_hot','main_warm','main_normal'])add('wish:'+w,cnt(c=>c.wish.includes(w)),'bad');
+    for(const k of ['vending','rest','food','play','arcade','b_open','b_sauna','b_cold'])add('gaveup:'+k,cnt(c=>c.flags['gaveup_'+k]),'bad');
+    const badL=out.filter(v=>v.kind==='bad').sort((a,b)=>b.n-a.n).slice(0,4);
+    const goods=[];const addG=(key,n,a)=>{if(n>0)goods.push({key,n,kind:'good',a})};
+    addG('totonou',cnt(c=>c.flags.totonou));
+    addG('snow',cnt(c=>c.flags.snow));
+    addG('open',cnt(c=>c.flags.openJoy));
+    addG('milk',cnt(c=>c.flags.drank));
+    addG('food',cnt(c=>c.flags.ate));
+    addG('play',cnt(c=>c.flags.played));
+    addG('arcade',cnt(c=>c.flags.arcade));
+    addG('rest',cnt(c=>c.flags.rested));
+    const easy=cnt(c=>c.waitTotal<2&&!c.angry);if(easy>=N*0.6)addG('easy',easy);
+    addG('happy',cnt(c=>c.sat>=85));
+    addG('cheap',cnt(c=>c.flags.cheap));
+    goods.sort((a,b)=>b.n-a.n);
+    const fl=temp<0?[{key:'snowday',n:0,kind:'flavor'}]:temp>=18?[{key:'hotday',n:0,kind:'flavor'}]:[];
+    return badL.concat(goods.slice(0,3),fl);
+  }
+
+  function dayCosts(g,temp,visitors){
+    let fuel=0,elec=2000;
+    for(const o of g.objs){const def=OBJ[o.k];const t=o.w*o.h;
+      if(def.bath&&def.heat)fuel+=def.heat*t*(1200+Math.max(0,18-temp)*100)+(o.k==='b_open'?t*Math.max(0,-temp)*100:0);
+      if(def.elec)elec+=def.elec*(def.bath?t:1);
+      if(def.gas)fuel+=def.gas;}
+    const water=visitors*30;
+    const staff=hired(g)*WAGE*HOURS;
+    const up=g.objs.reduce((a,o)=>a+objUp(o),0);
+    return {fuel,elec:elec+water,staff,up};
+  }
+
+  function endMonth(g,days){
+    const temp=TEMPS[g.month];
+    const [nWd,nHd]=countDays(g.year,g.month);
+    const [wd,hd]=days;
+    const mul=(k)=>wd.rev[k]*nWd+hd.rev[k]*nHd;
+    const cw=dayCosts(g,temp,wd.visitors),chd=dayCosts(g,temp,hd.visitors);
+    const cost=k=>cw[k]*nWd+chd[k]*nHd;
+    const rep={label:`${g.year}年${g.month+1}月`,year:g.year,month:g.month,temp,nWd,nHd,wd,hd,
+      rev:{bath:mul('bath'),vend:mul('vend'),food:mul('food'),arcade:mul('arcade')},
+      cost:{fuel:cost('fuel'),elec:cost('elec'),staff:cost('staff'),up:cost('up')},
+      hired:hired(g),repBefore:g.rep,prices:{...g.prices}};
+    rep.income=Object.values(rep.rev).reduce((a,b)=>a+b,0);
+    rep.expense=Object.values(rep.cost).reduce((a,b)=>a+b,0);
+    rep.profit=rep.income-rep.expense;
+    const vis=wd.visitors+hd.visitors;
+    rep.avgSat=vis?(wd.satSum+hd.satSum)/vis:null;
+    rep.pen=newPen();if(vis)for(const k in rep.pen)rep.pen[k]=(wd.pen[k]+hd.pen[k])/vis;
+    const cust=wd.cust.concat(hd.cust);
+    rep.voices=makeVoices(g,cust,temp);
+    rep.voiceN=cust.length;
+    const waits={};for(const s of [wd,hd])for(const [k,[a,b]] of Object.entries(s.waits)){waits[k]=waits[k]||[0,0];waits[k][0]+=a;waits[k][1]+=b}
+    rep.waits=Object.fromEntries(Object.entries(waits).map(([k,[a,b]])=>[k,b?a/b:0]));
+    rep.missing={};for(const s of [wd,hd])for(const [k,v] of Object.entries(s.missing))rep.missing[k]=(rep.missing[k]||0)+v;
+    rep.angry=wd.angry+hd.angry;
+    rep.avgDay=Math.round((wd.visitors*nWd+hd.visitors*nHd)/(nWd+nHd));
+    g.money+=rep.profit;
+    if(rep.avgSat!==null)g.rep=clamp(g.rep+(rep.avgSat-65)/150,0.3,1.8);
+    rep.repAfter=g.rep;
+    g.history.push({y:g.year,m:g.month,visitors:rep.avgDay,profit:rep.profit});
+    if(g.history.length>24)g.history.shift();
+    g.month++;if(g.month>11){g.month=0;g.year++}
+    return rep;
+  }
+
+  function reachable(g,fromKinds){ // plain BFS connectivity from entrance through floors
+    const seen=new Set();const q=[[ENT.x,ENT.y]];seen.add(ENT.y*W+ENT.x);const found=new Set();
+    const map=new Int32Array(W*H).fill(-1);const byId=new Map();
+    for(const o of g.objs){byId.set(o.id,o);for(let y=o.y;y<o.y+o.h;y++)for(let x=o.x;x<o.x+o.w;x++)map[y*W+x]=o.id}
+    while(q.length){const [x,y]=q.shift();
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=W||ny>=H)continue;
+        const v=ny*W+nx;if(seen.has(v))continue;seen.add(v);
+        const id=map[v];if(id>=0){found.add(byId.get(id).k);continue}
+        if(g.floor[ny][nx]!=='ground')q.push([nx,ny]);}}
+    return found;
+  }
+
+  return {W,H,ENT,OBJ,FLOOR,WARM,TEMPS,POP,SHARE,RATE,AGE,STD,WAGE,HOURS,OPEN,CLOSE,
+    newGame,eff,hired,count,hasWarm,countDays,demand,attraction,startDay,refresh,tick,summarizeDay,endMonth,
+    objCost,objUp,objCap,inUse,dayCosts,reachable,isOpen};
+})();
+if(typeof module!=='undefined')module.exports=SIM;
+</script>
+
+<script>
+(()=>{
+const S=16,{W,H,ENT,OBJ}=SIM;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
+const KEY='onsen-asahikawa-v2',PREF='onsen-asahikawa-pref';
+let g=null,pref={mode:'ja',speed:2};
+try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&p.v===2)g=p}}catch(e){}
+try{const raw=localStorage.getItem(PREF);if(raw)pref=Object.assign(pref,JSON.parse(raw))}catch(e){}
+if(!g)g=SIM.newGame();
+if(g.phase==='run')g.phase='ready';
+g.dayIdx=g.dayIdx||0;if(g.dayIdx===1&&(!g.days||!g.days[0]))g.dayIdx=0;
+let d=SIM.startDay(g,g.dayIdx===0?'wd':'hd');
+let speed=pref.speed??2,running=false;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(g))}catch(e){}};
+const savePref=()=>{try{localStorage.setItem(PREF,JSON.stringify(pref))}catch(e){}};
+const K=()=>pref.mode==='kid';
+
+/* ---------- words (ふつう / こども) ---------- */
+const TX={
+  title:['旭川ゆけむり湯','あさひかわ ゆけむりゆ'],
+  sub:['旭川の人口と気温で客が来る、町の銭湯経営シミュレーション','あさひかわの 人の かずと きおんで おきゃくさんが くる、おふろやさん ゲーム'],
+  mode_to_kid:['こどもモード','こどもモード'],mode_to_ja:['ふつうモード','ふつうモード'],
+  hud_date:['年月・時刻','ひづけ・じかん'],hud_money:['所持金','おかね'],hud_rep:['評判','にんき'],
+  hud_visit:['来店 到着/予定','きた人/くる人'],hud_wait:['待っている人','まっている人'],hud_clean:['きれいさ','きれいさ'],
+  wd:['平日','へいじつ'],hd:['休日','やすみのひ'],stop:['止','とめる'],
+  open_btn:['開店する','おみせを ひらく'],
+  tab_floor:['床','ゆか'],tab_bath:['お風呂','おふろ'],tab_fac:['設備','せつび'],tab_fun:['たのしみ','たのしみ'],tab_tool:['道具','どうぐ'],
+  size:['大きさ','おおきさ'],rot:['向き ↻','むき ↻'],
+  panel_staff:['スタッフ','はたらく 人'],panel_price:['料金','おふろだい'],
+  price_wd:['平日の大人','へいじつの おとな'],price_hd:['休日の大人','やすみのひの おとな'],price_child:['子ども（6〜11歳）','こども'],
+  price_note:['北海道の銭湯料金（2026年10月から）は大人550円・子ども150円。高くすると客が減り、満足度も下がります。','ほっかいどうの おふろやさんは おとな 550えん、こども 150えん。たかくすると おきゃくさんが へるよ。'],
+  boss:['社長（あなた）の担当','しゃちょう（きみ）の しごと'],
+  r_reception:['受付','うけつけ'],r_clean:['清掃','そうじ'],r_pr:['広報','せんでん'],r_cook:['調理','りょうり'],
+  rd_reception:['受付カウンター1台に1人必要','うけつけ 1だいに 1人 いるよ'],rd_clean:['床をきれいに保つ','ゆかを きれいにする'],
+  rd_pr:['1人ごとに客が10%増える','おきゃくさんが ふえる'],rd_cook:['食堂を開けるのに必要','しょくどうを ひらくのに いる'],
+  incl_boss:['社長','しゃちょう'],
+  data_note:['データ：旭川市の人口 309,974人（2025年6月1日、住民基本台帳）、年齢構成 子ども9.8%・大人54.8%・高齢35.4%（2025年1月1日）、月平均気温は気象庁の平年値、時給は北海道の最低賃金1,131円。商圏・来訪率などは仮置きの値です。進行状況はこのブラウザに保存されます。','データ：あさひかわの 人の かず、きおん、ほっかいどうの おふろだいと じきゅうは ほんものの かず だよ。'],
+  reset:['はじめから','さいしょから'],reset_confirm:['本当に？もう一度押す','ほんとうに？ もういちど おす'],
+  look_hint:['盤面をタップすると、そのマスの様子が見られます。','マスを タップすると、ようすが わかるよ。'],
+};
+const t=k=>{const v=TX[k];return v?v[K()?1:0]:k};
+const NAME={
+  wood:['廊下の床','ろうかの ゆか'],tile:['浴場の床','おふろばの ゆか'],ground:['外（雪）','そと（ゆき）'],entrance:['入口','いりぐち'],
+  shoe:['下駄箱','くつばこ'],reception:['受付','うけつけ'],locker:['脱衣所','きがえべや'],wash:['洗い場','あらいば'],
+  b_normal:['ふつう湯','ふつうの おゆ'],b_hot:['あつ湯','あつい おゆ'],b_warm:['ぬる湯','ぬるい おゆ'],b_cold:['水風呂','みずぶろ'],
+  b_open:['露天風呂','そとの おふろ'],b_sauna:['サウナ','サウナ'],
+  vending:['自販機','じはんき'],rest:['休憩所','やすむ ところ'],food:['食堂','しょくどう'],play:['遊び場','あそびば'],arcade:['ゲームセンター','ゲームセンター'],
+  look:['調べる','しらべる'],remove:['撤去','こわす'],main:['お風呂','おふろ'],
+};
+const nm=k=>(NAME[k]||[k,k])[K()?1:0];
+const yen=v=>(v<0?'−':'')+Math.abs(Math.round(v)).toLocaleString('ja-JP')+(K()?'えん':'円');
+const man=v=>{const a=Math.abs(v);let s;if(a>=10000){const m=a/10000;s=(m>=100||Number.isInteger(m)?Math.round(m):m.toFixed(1))+(K()?'まんえん':'万円')}else s=Math.round(a)+(K()?'えん':'円');return (v<0?'−':'')+s};
+
+/* ---------- pixel art ---------- */
+function r(c,x,y,w,h,col){c.fillStyle=col;c.fillRect(x,y,w,h)}
+function drawFloor(c,f,px,py,tx,ty){
+  if(f==='ground'){r(c,px,py,S,S,'#dfe8f0');const s=(tx*7+ty*13)%5;r(c,px+2+s,py+3,1,1,'#b9c8d8');r(c,px+10-s,py+9,1,1,'#b9c8d8');r(c,px+6,py+13-s,1,1,'#c8d5e2');return}
+  if(f==='wood'){r(c,px,py,S,S,'#c9955a');for(let i=0;i<4;i++)r(c,px,py+i*4+3,S,1,'#a8763f');r(c,px+((tx+ty)%2?4:11),py,1,3,'#a8763f');r(c,px+((tx+ty)%2?9:2),py+8,1,3,'#a8763f');return}
+  if(f==='tile'){r(c,px,py,S,S,'#c8dbe3');r(c,px,py,S,1,'#a9c3cf');r(c,px,py+8,S,1,'#a9c3cf');r(c,px,py,1,S,'#a9c3cf');r(c,px+8,py,1,S,'#a9c3cf');r(c,px+3,py+3,1,1,'#e6f1f5');r(c,px+11,py+11,1,1,'#e6f1f5');return}
+}
+function drawEntrance(c,px,py){
+  r(c,px,py,S,S,'#c9955a');r(c,px,py,S,2,'#5a3a22');r(c,px,py,2,S,'#5a3a22');r(c,px+14,py,2,S,'#5a3a22');
+  r(c,px+2,py+2,12,8,'#2b3f7a');r(c,px+7,py+2,1,8,'#1e2d58');r(c,px+4,py+4,3,3,'#f2ead8');r(c,px+9,py+4,3,3,'#f2ead8');
+}
+const WATER={b_normal:['#7a5634','#3fa7c4','#8fd6ea'],b_hot:['#b5452f','#2f95b5','#8fd6ea'],b_warm:['#4f9a58','#6fcad6','#c2eef4'],
+  b_cold:['#3f63b5','#24508f','#7fa6e0'],b_open:['#7d8590','#3fa7c4','#8fd6ea']};
+function drawObj(c,o,tm,closed){
+  const px=o.x*S,py=o.y*S,w=o.w*S,h=o.h*S;
+  switch(o.k){
+    case 'shoe':r(c,px,py,w,h,'#c9955a');r(c,px+1,py+2,14,12,'#6b4428');for(let i=0;i<3;i++)for(let j=0;j<2;j++)r(c,px+2+i*4,py+3+j*5,3,4,'#3a2a1e');r(c,px+3,py+5,1,2,'#d9534f');r(c,px+11,py+10,1,2,'#5b8fd9');break;
+    case 'reception':r(c,px,py,w,h,'#c9955a');r(c,px+1,py+5,14,9,'#6b4428');r(c,px+1,py+5,14,2,'#8a5a35');r(c,px+3,py+2,4,3,'#3a3a3a');r(c,px+4,py+3,2,1,closed?'#ef8a6a':'#8fd18a');r(c,px+10,py+3,3,2,'#f2ead8');
+      if(closed){r(c,px+9,py+8,5,4,'#f2ead8');r(c,px+10,py+9,3,1,'#d9534f');r(c,px+10,py+11,3,0.5,'#d9534f')}break;
+    case 'locker':r(c,px,py,w,h,'#c9955a');r(c,px+1,py+1,14,14,'#d8c08c');for(let i=0;i<3;i++)for(let j=0;j<3;j++){r(c,px+2+i*4,py+2+j*4,4,4,'#b89a5c');r(c,px+4+i*4,py+4+j*4,1,1,'#5a3a22')}break;
+    case 'wash':r(c,px,py,w,h,'#c8dbe3');r(c,px+1,py+1,14,2,'#8a96a3');r(c,px+3,py+3,1,2,'#c9c9c9');r(c,px+11,py+3,1,2,'#c9c9c9');r(c,px+2,py+9,4,3,'#e7c64a');r(c,px+10,py+9,4,3,'#e7c64a');r(c,px+3,py+10,2,1,'#c9a52e');r(c,px+11,py+10,2,1,'#c9a52e');break;
+    case 'b_sauna':{r(c,px,py,w,h,'#7a5634');r(c,px+1,py+1,w-2,h-2,'#b9824e');for(let yy=py+4;yy<py+h-1;yy+=4)r(c,px+1,yy,w-2,1,'#8f6236');
+      r(c,px+w-6,py+h-7,4,5,'#3a3a3a');r(c,px+w-5,py+h-6,2,2,(tm/250|0)%2?'#ef5a3a':'#f0a03a');break}
+    case 'vending':r(c,px,py,w,h,'#c9955a');r(c,px+3,py+1,10,14,'#d9534f');r(c,px+4,py+2,8,6,'#f2ead8');for(let i=0;i<3;i++)r(c,px+5+i*2,py+3,1,4,['#5b8fd9','#e3b765','#6cbf6a'][i]);r(c,px+5,py+11,6,2,'#3a2a1e');break;
+    case 'rest':r(c,px,py,w,h,'#a9b86a');r(c,px,py+7,w,1,'#8a9a4e');r(c,px+7,py,1,7,'#8a9a4e');r(c,px+4,py+4,8,6,'#6b4428');r(c,px+4,py+4,8,1,'#8a5a35');r(c,px+6,py+5,1,2,'#f2ead8');r(c,px+9,py+5,1,2,'#f0c8a0');break;
+    case 'food':r(c,px,py,w,h,'#c9955a');r(c,px+1,py+1,w-2,4,'#2b3f7a');r(c,px+4,py+2,3,2,'#f2ead8');r(c,px+w-7,py+2,3,2,'#f2ead8');
+      for(let i=0;i<o.w;i++){r(c,px+i*S+3,py+7,10,6,'#8a5a35');r(c,px+i*S+5,py+8,3,2,'#f2ead8');r(c,px+i*S+9,py+9,2,2,'#e08a3c')}break;
+    case 'play':r(c,px,py,w,h,'#e6c96a');r(c,px+1,py+1,w-2,h-2,'#f0d888');r(c,px+4,py+4,8,8,'#d9534f');r(c,px+5,py+5,6,6,'#ef8a6a');r(c,px+w-12,py+5,2,14,'#5b8fd9');r(c,px+w-12,py+5,8,2,'#5b8fd9');r(c,px+w-6,py+5,2,14,'#5b8fd9');
+      r(c,px+6,py+h-10,12,3,'#6cbf6a');r(c,px+w-10,py+h-8,4,4,'#b07cd8');break;
+    case 'arcade':r(c,px,py,w,h,'#2b2440');for(let i=0;i<o.w*o.h;i++){const ax=px+(i%o.w)*S,ay=py+Math.floor(i/o.w)*S;r(c,ax+3,ay+1,10,13,'#3a3a6a');r(c,ax+4,ay+2,8,6,(tm/300+i|0)%2?'#4fb3b3':'#b07cd8');r(c,ax+5,ay+10,2,2,'#d9534f');r(c,ax+9,ay+10,2,2,'#e3b765')}break;
+    default:{
+      const [rim,water,ripple]=WATER[o.k]||WATER.b_normal;
+      if(o.k==='b_open'){r(c,px,py,w,h,'#dfe8f0');r(c,px+1,py+1,w-2,h-2,rim);for(let i=0;i<w;i+=5){r(c,px+i,py,4,3,'#9aa3ad');r(c,px+i+2,py+h-3,4,3,'#9aa3ad');r(c,px+i+1,py,2,1,'#ffffff')}}
+      else{r(c,px,py,w,h,'#7e8fa3');r(c,px+1,py+1,w-2,h-2,rim)}
+      r(c,px+2,py+2,w-4,h-4,water);
+      const wv=(tm/400|0)%2;
+      for(let yy=py+4;yy<py+h-3;yy+=5)for(let xx=px+3+((yy/5|0)%2)*4;xx<px+w-5;xx+=8)r(c,xx,yy+wv,3,1,ripple);
+      if(o.k==='b_cold'){r(c,px+4,py+4,1,1,'#ffffff');r(c,px+w-5,py+h-6,1,1,'#ffffff')}
+      if(o.k==='b_hot'){r(c,px+2,py+2,2,2,'#ef5a3a')}
+      if(o.k==='b_warm'){r(c,px+2,py+2,2,2,'#8fd18a')}
+      if(o.k!=='b_cold')steam(c,px,py,w,tm+o.id*137,o.k==='b_hot'?5:3);
+    }
+  }
+}
+function steam(c,px,py,w,tm,n){
+  c.fillStyle='rgba(255,255,255,0.55)';
+  for(let i=0;i<n;i++){const a=(tm/300+i*3.7)%14;const yy=py+12-a;const xx=px+3+((i*7)%Math.max(4,w-6))+(((yy/3)|0)%2);c.fillRect(xx,yy,2,1)}
+}
+function slotPos(o,i){
+  const cap=SIM.objCap(o),tiles=o.w*o.h,per=Math.ceil(cap/tiles);
+  const ti=Math.min(tiles-1,Math.floor(i/per)),k=i%per;
+  const tx=o.x+(ti%o.w),ty=o.y+Math.floor(ti/o.w);
+  const OFF={1:[[8,10]],2:[[5,10],[11,10]],3:[[4,11],[8,7],[12,11]]}[per]||[[8,10]];
+  const [ox,oy]=OFF[k]||[8,10];return [tx*S+ox,ty*S+oy];
+}
+function drawPerson(c,cu,tm){
+  const px=Math.round(cu.rx),py=Math.round(cu.ry);
+  const using=cu.state==='use'&&cu.obj;const k=using?cu.obj.k:'';
+  const small=cu.group==='child';
+  const skin=cu.flags.bathed?'#f2a98f':'#f0c8a0';
+  const hair=cu.group==='elder'?'#d8d8d8':'#3a2a1e';
+  if(using&&OBJ[k]&&OBJ[k].bath&&k!=='b_sauna'){r(c,px-2,py-2,4,4,skin);r(c,px-2,py-3,4,1,hair);r(c,px-3,py+2,6,1,'#ffffff')}
+  else{
+    const top=small?-4:-6;
+    r(c,px-2,py+top,4,4,skin);r(c,px-2,py+top-1,4,1,hair);
+    if(cu.naked){r(c,px-3,py+top+4,6,4,skin);r(c,px-3,py+top+7,6,2,'#ffffff')}
+    else{const body=cu.flags.bathed?'#f2ead8':cu.shirt;r(c,px-3,py+top+4,6,small?3:5,body)}
+    const step=cu.state==='walk'?((tm/140|0)%2):0;
+    const ly=py+top+(small?7:9);
+    r(c,px-2,ly,1,2+step,'#2b3650');r(c,px+1,ly,1,3-step,'#2b3650');
+    if(using&&k==='b_sauna'){r(c,px-2,py+top+1,4,1,'#ef8a6a')}
+  }
+  if(cu.angry){r(c,px-1,py-13,3,3,'#ef8a6a');r(c,px,py-12,1,1,'#18202f')}
+  else if(cu.state==='seek'&&cu.waitStep>8){r(c,px,py-14,1,3,'#ef8a6a');r(c,px,py-10,1,1,'#ef8a6a')}
+}
+function targetPx(cu){
+  if(cu.state==='use'&&cu.obj)return slotPos(cu.obj,cu.slotI);
+  return [cu.x*S+8+cu.ox,cu.y*S+10+cu.oy];
+}
+
+/* ---------- tools ---------- */
+const TABS={
+  floor:['wood','tile'],
+  bath:['b_normal','b_hot','b_warm','b_cold','b_open','b_sauna'],
+  fac:['shoe','reception','locker','wash'],
+  fun:['vending','rest','food','play','arcade'],
+  tool:['look','remove'],
+};
+let tab='floor',tool='look',bsize=1,brot=false;
+let pending=null; // touch placement: {stage,x0,y0,x1,y1}
+function toolSize(k){
+  if(OBJ[k]&&OBJ[k].bath){if(bsize===1)return [1,1];if(bsize===4)return [2,2];return brot?[1,2]:[2,1]}
+  if(OBJ[k]&&OBJ[k].size){const [a,b]=OBJ[k].size;return brot&&a!==b?[b,a]:[a,b]}
+  return [1,1];
+}
+function toolCost(k){
+  if(SIM.FLOOR[k])return SIM.FLOOR[k].cost;
+  if(OBJ[k]){const [w,h]=toolSize(k);return SIM.objCost(k,w,h)}
+  return 0;
+}
+function iconCanvas(k){
+  const ic=document.createElement('canvas');ic.width=16;ic.height=16;const c=ic.getContext('2d');c.imageSmoothingEnabled=false;
+  if(k==='wood'||k==='tile')drawFloor(c,k,0,0,1,1);
+  else if(k==='look'){drawFloor(c,'wood',0,0,1,1);c.strokeStyle='#18202f';c.lineWidth=2;c.beginPath();c.arc(7,7,4,0,7);c.stroke();r(c,10,10,4,2,'#18202f');r(c,11,11,3,3,'#18202f')}
+  else if(k==='remove'){drawFloor(c,'ground',0,0,1,1);c.fillStyle='#d9534f';for(let i=3;i<13;i++){c.fillRect(i,i,2,1);c.fillRect(15-i,i,2,1)}}
+  else drawObj(c,{k,x:0,y:0,w:1,h:1,id:3},0,false);
+  return ic;
+}
+const tabsEl=document.getElementById('tabs'),toolsEl=document.getElementById('tools'),sizesEl=document.getElementById('sizes');
+function renderTabs(){
+  tabsEl.innerHTML='';
+  for(const k of Object.keys(TABS)){const b=document.createElement('button');b.id='tab-'+k;b.setAttribute('role','tab');b.textContent=t('tab_'+k);b.setAttribute('aria-pressed',tab===k);
+    b.addEventListener('click',()=>{tab=k;if(!TABS[k].includes(tool))tool=TABS[k][0];pending=null;renderTabs();renderTools()});tabsEl.append(b)}
+}
+function renderTools(){
+  toolsEl.innerHTML='';
+  for(const k of TABS[tab]){
+    const b=document.createElement('button');b.className='tool';b.id='tool-'+k;
+    const sp=document.createElement('span');sp.textContent=nm(k);
+    const em=document.createElement('em');
+    if(k==='look')em.textContent='';else if(k==='remove')em.textContent=K()?'はんがく もどる':'半額返金';else em.textContent=man(toolCost(k));
+    b.append(iconCanvas(k),sp,em);b.setAttribute('aria-pressed',tool===k);
+    b.addEventListener('click',()=>{tool=k;pending=null;renderTools();updateInfo()});toolsEl.append(b);
+  }
+  const showSize=tab==='bath'||(OBJ[tool]&&OBJ[tool].size&&OBJ[tool].size[0]!==OBJ[tool].size[1]);
+  sizesEl.hidden=!showSize;sizesEl.innerHTML='';
+  if(showSize){
+    if(tab==='bath'){
+      const lab=document.createElement('span');lab.textContent=t('size');sizesEl.append(lab);
+      for(const n of [1,2,4]){const b=document.createElement('button');b.className='small';b.id='size-'+n;b.textContent=n+'マス';b.setAttribute('aria-pressed',bsize===n);
+        b.addEventListener('click',()=>{bsize=n;pending=null;renderTools();updateInfo()});sizesEl.append(b)}
+    }
+    const [w,h]=toolSize(tool);
+    if(w!==h||(tab==='bath'&&bsize===2)){const b=document.createElement('button');b.className='small';b.id='rot';b.textContent=t('rot');
+      b.addEventListener('click',()=>{brot=!brot;pending=null;renderTools();updateInfo()});sizesEl.append(b)}
+  }
+  updateInfo();
+}
+
+/* ---------- placement ---------- */
+let toastT=0;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2200)}
+function objAt(x,y){return g.objs.find(o=>x>=o.x&&x<o.x+o.w&&y>=o.y&&y<o.y+o.h)}
+function isEnt(x,y){return x===ENT.x&&y===ENT.y}
+function peopleOn(x,y){return d.cust.some(c=>Math.round(c.x)===x&&Math.round(c.y)===y)}
+function canPlaceObj(k,x,y){
+  const [w,h]=toolSize(k);
+  if(x<0||y<0||x+w>W||y+h>H)return false;
+  for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){if(isEnt(xx,yy)||objAt(xx,yy)||peopleOn(xx,yy))return false}
+  return true;
+}
+function rectCells(p){const x0=Math.min(p.x0,p.x1),x1=Math.max(p.x0,p.x1),y0=Math.min(p.y0,p.y1),y1=Math.max(p.y0,p.y1);const a=[];for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)a.push([x,y]);return a}
+function floorPlan(cells){return cells.filter(([x,y])=>!isEnt(x,y)&&!objAt(x,y)&&g.floor[y][x]!==tool)}
+function removePlan(cells){const objs=new Set(),floors=[];for(const [x,y] of cells){const o=objAt(x,y);if(o)objs.add(o);else if(!isEnt(x,y)&&g.floor[y][x]!=='ground')floors.push([x,y])}return {objs:[...objs],floors}}
+function refundOf(rp){return rp.objs.reduce((a,o)=>a+SIM.objCost(o.k,o.w,o.h)*0.5,0)+rp.floors.reduce((a,[x,y])=>a+SIM.FLOOR[g.floor[y][x]].cost*0.5,0)}
+function commit(cells){
+  if(SIM.FLOOR[tool]){
+    const plan=floorPlan(cells);if(!plan.length)return;
+    const cost=plan.length*SIM.FLOOR[tool].cost;
+    if(g.money<cost){toast(K()?'おかねが たりないよ':'資金が足りません');return}
+    g.money-=cost;for(const [x,y] of plan)g.floor[y][x]=tool;
+  }else if(tool==='remove'){
+    const rp=removePlan(cells);
+    if(rp.objs.some(o=>SIM.inUse(d,o.id))){toast(K()?'おきゃくさんが つかっているよ':'お客さんが使っています');return}
+    g.money+=refundOf(rp);
+    g.objs=g.objs.filter(o=>!rp.objs.includes(o));for(const [x,y] of rp.floors)g.floor[y][x]='ground';
+  }else if(OBJ[tool]){
+    const [x,y]=cells[0];
+    if(!canPlaceObj(tool,x,y)){toast(K()?'そこには おけないよ':'そこには置けません');return}
+    const cost=toolCost(tool);if(g.money<cost){toast(K()?'おかねが たりないよ':'資金が足りません');return}
+    const [w,h]=toolSize(tool);g.money-=cost;g.objs.push({id:g.nextObj++,k:tool,x,y,w,h});
+  }
+  SIM.refresh(g,d);save();renderFormula();renderChecklist();
+}
+function tileAt(e){const rc=cv.getBoundingClientRect();return {x:Math.floor((e.clientX-rc.left)/rc.width*W),y:Math.floor((e.clientY-rc.top)/rc.height*H)}}
+let down=null,mouseDrag=false,lastCell=null,hover=null;
+cv.addEventListener('pointerdown',e=>{
+  const p=tileAt(e);down={x:e.clientX,y:e.clientY,t:performance.now(),p,type:e.pointerType};
+  if(e.pointerType==='mouse'&&tool!=='look'){
+    mouseDrag=true;lastCell=p.x+','+p.y;
+    if(SIM.FLOOR[tool]||tool==='remove')commit([[p.x,p.y]]);else if(OBJ[tool])commit([[p.x,p.y]]);
+  }
+});
+cv.addEventListener('pointermove',e=>{
+  const p=tileAt(e);if(e.pointerType==='mouse')hover=p;
+  if(mouseDrag&&(SIM.FLOOR[tool]||tool==='remove')){const k=p.x+','+p.y;if(k!==lastCell){lastCell=k;commit([[p.x,p.y]])}}
+});
+cv.addEventListener('pointerleave',()=>{hover=null});
+cv.addEventListener('pointercancel',()=>{down=null;mouseDrag=false});
+cv.addEventListener('pointerup',e=>{
+  const wasDrag=mouseDrag;mouseDrag=false;
+  if(!down)return;const dn=down;down=null;
+  const moved=Math.hypot(e.clientX-dn.x,e.clientY-dn.y);
+  if(moved>10||performance.now()-dn.t>700)return;
+  const p=dn.p;
+  if(tool==='look'){inspect(p.x,p.y);return}
+  if(dn.type==='mouse'){return}
+  tap(p.x,p.y);
+});
+function inRect(p,x,y){return x>=Math.min(p.x0,p.x1)&&x<=Math.max(p.x0,p.x1)&&y>=Math.min(p.y0,p.y1)&&y<=Math.max(p.y0,p.y1)}
+function tap(x,y){
+  if(x<0||y<0||x>=W||y>=H)return;
+  const rect=SIM.FLOOR[tool]||tool==='remove';
+  if(!pending){pending={stage:1,x0:x,y0:y,x1:x,y1:y};updateInfo();return}
+  if(OBJ[tool]){
+    if(pending.x0===x&&pending.y0===y){commit([[x,y]]);pending=null}
+    else pending={stage:1,x0:x,y0:y,x1:x,y1:y};
+    updateInfo();return;
+  }
+  if(rect){
+    if(pending.stage===1){
+      if(pending.x0===x&&pending.y0===y){commit([[x,y]]);pending=null}
+      else{pending.x1=x;pending.y1=y;pending.stage=2}
+    }else{
+      if(inRect(pending,x,y)){commit(rectCells(pending));pending=null}
+      else pending={stage:1,x0:x,y0:y,x1:x,y1:y};
+    }
+    updateInfo();
+  }
+}
+function inspect(x,y){
+  const info=document.getElementById('info');
+  const o=objAt(x,y);
+  if(isEnt(x,y)){info.textContent=nm('entrance');return}
+  if(!o){info.textContent=nm(g.floor[y][x]);return}
+  const sl=d.slot[o.id]||[];const used=sl.filter(v=>v).length;
+  let s=`${nm(o.k)}（${o.w*o.h}マス）　${K()?'つかっている人':'利用中'} ${used}/${sl.length}${K()?'人':'人'}`;
+  if(o.k==='reception'&&!d.openRec.has(o.id))s+=K()?'　うけつけの 人が いない':'　受付スタッフがいません';
+  if(o.k==='food'&&SIM.eff(g,'cook')===0)s+=K()?'　りょうりの 人が いない':'　調理スタッフがいません';
+  info.textContent=s;
+}
+function updateInfo(){
+  const info=document.getElementById('info');
+  if(tool==='look'){info.textContent=t('look_hint');return}
+  const kid=K();
+  if(!pending){
+    const base=SIM.FLOOR[tool]||tool==='remove'
+      ?(kid?'1かい タップで はじまり、もう1かい おなじマスで けってい。べつの マスを タップすると しかくく まとめて しけるよ。':'1回目のタップで始点、同じマスをもう1回で決定。別のマスをタップすると四角くまとめて配置できます（パソコンはドラッグでも可）。')
+      :(kid?'おきたい マスを タップして、もう1かい タップで けってい。':'置きたいマスをタップ、同じマスをもう1回タップで決定（パソコンはクリック1回）。');
+    info.innerHTML=`<b>${nm(tool)}</b>${OBJ[tool]||SIM.FLOOR[tool]?'　'+man(toolCost(tool)):''}<br>${base}`;return;
+  }
+  if(OBJ[tool]){
+    const ok=canPlaceObj(tool,pending.x0,pending.y0);const cost=toolCost(tool);
+    info.innerHTML=ok?`<span class="ok">${nm(tool)} ${man(cost)}</span>　${kid?'もう1かい タップで けってい':'もう一度タップで決定'}`:`<span class="ng">${kid?'そこには おけないよ':'そこには置けません'}</span>`;
+    return;
+  }
+  const cells=pending.stage===2?rectCells(pending):[[pending.x0,pending.y0]];
+  if(tool==='remove'){const rp=removePlan(cells);const n=rp.objs.length+rp.floors.length;
+    info.innerHTML=`<span class="ok">${kid?'こわす':'撤去'} ${n}${kid?'こ':'か所'}　+${man(refundOf(rp))}</span>　${pending.stage===2?(kid?'しかくの なかを タップで けってい':'四角の中をタップで決定'):(kid?'おなじマスで けってい／べつの マスで しかく':'同じマスで決定／別のマスで範囲')}`;return}
+  const plan=floorPlan(cells);
+  info.innerHTML=`<span class="${g.money>=plan.length*toolCost(tool)?'ok':'ng'}">${nm(tool)} ${plan.length}${kid?'マス':'マス'}　${man(plan.length*toolCost(tool))}</span>　${pending.stage===2?(kid?'しかくの なかを タップで けってい':'四角の中をタップで決定'):(kid?'おなじマスで けってい／べつの マスで しかく':'同じマスで決定／別のマスで範囲')}`;
+}
+
+/* ---------- render ---------- */
+function render(tm,dt){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)drawFloor(ctx,g.floor[y][x],x*S,y*S,x,y);
+  drawEntrance(ctx,ENT.x*S,ENT.y*S);
+  for(const o of g.objs)drawObj(ctx,o,tm,o.k==='reception'?!d.openRec.has(o.id):o.k==='food'?SIM.eff(g,'cook')===0:false);
+  // ghost
+  let ghost=null;
+  if(pending&&tool!=='look'){
+    if(OBJ[tool]){const [w,h]=toolSize(tool);ghost={x:pending.x0,y:pending.y0,w,h,ok:canPlaceObj(tool,pending.x0,pending.y0)}}
+    else{const x0=Math.min(pending.x0,pending.x1),y0=Math.min(pending.y0,pending.y1);ghost={x:x0,y:y0,w:Math.abs(pending.x1-pending.x0)+1,h:Math.abs(pending.y1-pending.y0)+1,ok:true}}
+  }else if(hover&&tool!=='look'&&OBJ[tool]){const [w,h]=toolSize(tool);ghost={x:hover.x,y:hover.y,w,h,ok:canPlaceObj(tool,hover.x,hover.y)}}
+  else if(hover&&tool!=='look')ghost={x:hover.x,y:hover.y,w:1,h:1,ok:true};
+  if(ghost){
+    ctx.fillStyle=ghost.ok?(tool==='remove'?'rgba(239,138,106,0.35)':'rgba(143,209,138,0.35)'):'rgba(239,138,106,0.45)';
+    ctx.fillRect(ghost.x*S,ghost.y*S,ghost.w*S,ghost.h*S);
+    ctx.strokeStyle=ghost.ok?'#f2ead8':'#ef8a6a';ctx.lineWidth=1;ctx.strokeRect(ghost.x*S+0.5,ghost.y*S+0.5,ghost.w*S-1,ghost.h*S-1);
+  }
+  // people (smoothed)
+  const k=Math.min(1,dt*12);
+  for(const cu of d.cust){const [tx,ty]=targetPx(cu);if(cu.rx===undefined||Math.abs(tx-cu.rx)+Math.abs(ty-cu.ry)>40){cu.rx=tx;cu.ry=ty}else{cu.rx+=(tx-cu.rx)*k;cu.ry+=(ty-cu.ry)*k}}
+  const cs=[...d.cust].sort((a,b)=>a.ry-b.ry);
+  for(const cu of cs)drawPerson(ctx,cu,tm);
+  // evening light
+  const hr=d.clock/60;if(hr>18){ctx.fillStyle=`rgba(20,28,60,${Math.min(0.28,(hr-18)*0.07)})`;ctx.fillRect(0,0,256,256)}
+}
+
+/* ---------- panels ---------- */
+function stepper(id,val,onDown,onUp){
+  const wrap=document.createElement('div');wrap.className='stepper';
+  const a=document.createElement('button');a.textContent='−';a.id=id+'-down';a.setAttribute('aria-label','−');a.addEventListener('click',onDown);
+  const o=document.createElement('output');o.id=id;o.textContent=val;
+  const b=document.createElement('button');b.textContent='+';b.id=id+'-up';b.setAttribute('aria-label','+');b.addEventListener('click',onUp);
+  wrap.append(a,o,b);return wrap;
+}
+function renderStaff(){
+  const el=document.getElementById('staff');el.innerHTML='';
+  for(const role of ['reception','clean','pr','cook']){
+    const row=document.createElement('div');row.className='prow';
+    const n=SIM.eff(g,role);
+    const lbl=document.createElement('div');lbl.className='lbl';
+    lbl.innerHTML=`${t('r_'+role)}${g.boss===role?` <span style="color:var(--hinoki)">★${t('incl_boss')}</span>`:''}<small>${t('rd_'+role)}</small>`;
+    row.append(lbl,stepper('st-'+role,n+(K()?'にん':'人'),
+      ()=>{if(g.staff[role]>0){g.staff[role]--;after()}},
+      ()=>{if(g.staff[role]<6){g.staff[role]++;after()}}));
+    el.append(row);
+  }
+  const boss=document.getElementById('boss');boss.innerHTML=`<span>${t('boss')}</span>`;
+  for(const role of ['reception','clean','pr','cook']){const b=document.createElement('button');b.className='small';b.id='boss-'+role;b.textContent=t('r_'+role);b.setAttribute('aria-pressed',g.boss===role);
+    b.addEventListener('click',()=>{g.boss=role;after()});boss.append(b)}
+  const per=SIM.WAGE*SIM.HOURS;
+  document.getElementById('staffNote').textContent=K()
+    ?`やとった 人は 1人 1日 ${yen(per)}（しゃちょうは ただ）。いま ${SIM.hired(g)}人 で 1日 ${yen(per*SIM.hired(g))}`
+    :`雇った人は1人1日 ${yen(per)}（北海道の最低賃金 ${SIM.WAGE}円×${SIM.HOURS}時間、社長は0円）。今は ${SIM.hired(g)}人で1日 ${yen(per*SIM.hired(g))}`;
+  function after(){SIM.refresh(g,d);save();renderStaff();renderFormula();renderChecklist()}
+}
+function renderPrices(){
+  const el=document.getElementById('prices');el.innerHTML='';
+  const rows=[['wd','price_wd',300,1500,10],['hd','price_hd',300,1500,10],['child','price_child',50,800,10]];
+  for(const [k,lab,lo,hi,st] of rows){
+    const row=document.createElement('div');row.className='prow';
+    const l=document.createElement('div');l.className='lbl';l.textContent=t(lab);
+    row.append(l,stepper('pr-'+k,yen(g.prices[k]),()=>{g.prices[k]=Math.max(lo,g.prices[k]-st);save();renderPrices();renderFormula()},()=>{g.prices[k]=Math.min(hi,g.prices[k]+st);save();renderPrices();renderFormula()}));
+    el.append(row);
+  }
+}
+function renderFormula(){
+  const wd=SIM.demand(g,'wd'),hd=SIM.demand(g,'hd');const kid=K();
+  const [nW,nH]=SIM.countDays(g.year,g.month);
+  document.getElementById('mTitle').textContent=kid
+    ?`${g.year}ねん ${g.month+1}がつ　くる人の よそう（きおん ${wd.temp.toFixed(1)}ど）`
+    :`${g.year}年${g.month+1}月の客の見込み（平均気温 ${wd.temp.toFixed(1)}℃・平日${nW}日／休日${nH}日）`;
+  const gr=(m)=>kid?`こども ${Math.round(m.groups.child)}・おとな ${Math.round(m.groups.adult)}・おとしより ${Math.round(m.groups.elder)}`:`子ども ${Math.round(m.groups.child)}・大人 ${Math.round(m.groups.adult)}・高齢 ${Math.round(m.groups.elder)}`;
+  const op=s=>`<span class="op">${s}</span>`;
+  document.getElementById('formula').innerHTML=kid
+    ?`あさひかわの 人 ${SIM.POP.toLocaleString()}人 のうち、ちかくに すむ 人 ${(SIM.SHARE*100).toFixed(0)}%、そのうち おふろに くる 人 ${(SIM.RATE*100).toFixed(0)}%<br>`+
+     `さむさ ×${wd.tf.toFixed(2)} ${op('／')} にんき ×${wd.rep.toFixed(2)} ${op('／')} せんでん ×${wd.pr.toFixed(2)} ${op('／')} おふろだい おとな ×${wd.pfA.toFixed(2)}・こども ×${wd.pfC.toFixed(2)}<br>`+
+     `へいじつ：${gr(wd)} ${op('＝')} やく ${Math.round(wd.total)}人<br>やすみのひ：${gr(hd)} ${op('＝')} やく ${Math.round(hd.total)}人`
+    :`旭川市の人口 ${SIM.POP.toLocaleString()}人 ${op('×')} 商圏 ${(SIM.SHARE*100).toFixed(0)}% ${op('×')} 来訪率 ${(SIM.RATE*100).toFixed(1)}% ${op('×')} 年齢ごとの来やすさ<br>`+
+     `${op('×')} 気温 ${wd.tf.toFixed(2)} ${op('×')} 評判 ${wd.rep.toFixed(2)} ${op('×')} 広報 ${wd.pr.toFixed(2)} ${op('×')} 料金（大人 ${wd.pfA.toFixed(2)}・子ども ${wd.pfC.toFixed(2)}） ${op('×')} 設備の魅力<br>`+
+     `平日：${gr(wd)} ${op('＝')} 約${Math.round(wd.total)}人<br>休日：${gr(hd)} ${op('＝')} 約${Math.round(hd.total)}人`;
+}
+function checks(){
+  const found=SIM.reachable(g);
+  return [
+    [found.size>0||g.floor[ENT.y-1][ENT.x]!=='ground'||g.floor[ENT.y][ENT.x-1]!=='ground'||g.floor[ENT.y][ENT.x+1]!=='ground',K()?'いりぐちから ろうか':'入口から廊下'],
+    [found.has('reception'),nm('reception')],
+    [SIM.eff(g,'reception')>0,K()?'うけつけの 人':'受付スタッフ'],
+    [found.has('shoe'),nm('shoe')],
+    [found.has('locker'),nm('locker')],
+    [SIM.count(g,'wash')>0,nm('wash')],
+    [SIM.hasWarm(g),K()?'あったかい おふろ':'温かいお風呂'],
+    [g.floor.some(row=>row.includes('tile')),nm('tile')],
+  ];
+}
+function renderChecklist(){
+  const el=document.getElementById('check');
+  const show=g.phase==='build';el.hidden=!show;if(!show)return;
+  el.innerHTML=checks().map(([ok,l])=>`<li class="${ok?'done':'todo'}">${ok?'✓':'・'} ${l}</li>`).join('');
+}
+function canOpen(){
+  const found=SIM.reachable(g);const miss=[];
+  if(!found.has('reception'))miss.push(nm('reception'));
+  if(!found.has('locker'))miss.push(nm('locker'));
+  if(!SIM.hasWarm(g))miss.push(K()?'あったかい おふろ':'温かいお風呂');
+  if(SIM.eff(g,'reception')===0)miss.push(K()?'うけつけの 人':'受付スタッフ');
+  return miss;
+}
+function renderHowto(){
+  document.getElementById('howto').innerHTML=K()
+    ?'<b>あそびかた：</b>まず ゆかを しいて、うけつけ・くつばこ・きがえべや・あらいば・おふろを おこう。きがえべやは「ろうかの ゆか」と「おふろばの ゆか」の あいだに おくのが コツ。はだかで ろうかを あるかせると おこられるよ。じゅんびが できたら「おみせを ひらく」。へいじつ 1にちと やすみのひ 1にちで 1かげつ。おわると けっさんが でるよ。'
+    :'<b>遊び方：</b>まず床を敷いて、受付・下駄箱・脱衣所・洗い場・お風呂を置きます。脱衣所は「廊下の床（木）」と「浴場の床（タイル）」の境目に置くのがコツ。裸で廊下を歩かせたり、服のまま浴場を通らせたりすると満足度が下がります。準備ができたら「開店する」。平日1日と休日1日を遊ぶと1か月が終わり、カレンダー通りの日数で月次決算が出ます。';
+}
+function applyLang(){
+  document.querySelectorAll('[data-t]').forEach(el=>el.textContent=t(el.dataset.t));
+  document.getElementById('modeBtn').textContent=K()?t('mode_to_ja'):t('mode_to_kid');
+  document.getElementById('sp0').textContent=t('stop');
+  document.getElementById('reset').textContent=t('reset');
+  document.title=t('title');
+  renderTabs();renderTools();renderStaff();renderPrices();renderFormula();renderChecklist();renderHowto();hud();syncPhase();
+}
+
+/* ---------- controls ---------- */
+document.getElementById('modeBtn').addEventListener('click',()=>{pref.mode=K()?'ja':'kid';savePref();applyLang()});
+function syncSpeed(){for(const s of [0,1,2,4,8])document.getElementById('sp'+s).setAttribute('aria-pressed',speed===s)}
+for(const s of [0,1,2,4,8])document.getElementById('sp'+s).addEventListener('click',()=>{speed=s;if(s>0){pref.speed=s;savePref()}syncSpeed()});
+const openBtn=document.getElementById('openBtn');
+openBtn.addEventListener('click',()=>{
+  if(g.phase==='build'){
+    const miss=canOpen();
+    if(miss.length){toast((K()?'まだ たりない：':'まだ足りません：')+miss.join('・'));return}
+  }
+  g.phase='run';if(speed===0)speed=pref.speed||2;syncSpeed();save();running=true;syncPhase();
+});
+document.getElementById('reset').addEventListener('click',e=>{
+  const b=e.currentTarget;
+  if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent=t('reset_confirm');setTimeout(()=>{b.dataset.armed='';b.textContent=t('reset')},3000);return}
+  g=SIM.newGame();d=SIM.startDay(g,'wd');running=false;b.dataset.armed='';save();syncPhase();applyLang();
+});
+function syncPhase(){
+  const ban=document.getElementById('banner');
+  openBtn.hidden=g.phase==='run';
+  if(g.phase==='build'){ban.hidden=false;ban.textContent=K()?'じゅんびちゅう：ゆかを しいて、おふろやさんを つくろう。できたら「おみせを ひらく」':'準備中：床を敷いて銭湯を作りましょう。できたら「開店する」'}
+  else if(g.phase==='ready'){ban.hidden=false;ban.textContent=K()?`じゅんびちゅう：${g.month+1}がつの ${d.type==='wd'?'へいじつ':'やすみのひ'}。「おみせを ひらく」で スタート`:`準備中：${g.month+1}月の${d.type==='wd'?'平日':'休日'}。「開店する」でスタート`}
+  else ban.hidden=true;
+  running=g.phase==='run';
+  renderChecklist();
+}
+
+function stars(rep){const n=Math.max(1,Math.min(5,Math.round(rep*3)));return '★'.repeat(n)+'☆'.repeat(5-n)}
+function hud(){
+  const h=Math.floor(d.clock/60),mi=Math.floor(d.clock%60);
+  document.getElementById('hDate').textContent=`${g.month+1}${K()?'がつ':'月'} ${t(d.type)} ${h}:${String(mi).padStart(2,'0')}`;
+  const m=document.getElementById('hMoney');m.textContent=man(g.money);m.className=g.money<0?'neg':'';
+  document.getElementById('hRep').textContent=stars(g.rep);
+  document.getElementById('hVisit').textContent=`${d.ai}/${d.arrivals.length}${K()?'にん':'人'}`;
+  const w=d.cust.filter(c=>c.state==='seek'&&c.waitStep>0).length;
+  const we=document.getElementById('hWait');we.textContent=`${w}${K()?'にん':'人'}`;we.className=w>=5?'neg':'';
+  const ce=document.getElementById('hClean');ce.textContent=Math.round(d.clean)+'%';ce.className=d.clean<60?'neg':'';
+}
+
+/* ---------- monthly report ---------- */
+const VOICE={
+  'angry:reception':['受付が空かなくて、待ちきれず帰ります','うけつけが ずっと あかないから かえる！'],
+  'angry:locker':['脱衣所が空かなくて、待ちきれず帰ります','きがえべやが いっぱいで かえる！'],
+  'angry:main':['お風呂が空かなくて、待ちきれず帰ります','おふろが いっぱいで かえる！'],
+  slow:['{n}が混んでいて、だいぶ待たされた','{n}で たくさん またされた'],
+  nostaff:['受付に誰もいなかった','うけつけに だれも いなかった'],
+  missing:['{n}にたどり着けなかった','{n}に いけなかった'],
+  wood:['はだかで廊下を歩かされた！','はだかで ろうかを あるかされた！'],
+  tile:['服のまま浴場を通って、靴下がびしょびしょ','ふくの まま おふろばを とおって、くつしたが びしょびしょ'],
+  crowd:['お風呂がぎゅうぎゅうで落ち着かない','おふろが ぎゅうぎゅう だった'],
+  nowash:['洗い場がなくて、体を洗えなかった','からだを あらう ところが なかった'],
+  dirty:['床がぬるぬるして、ちょっと汚い','ゆかが ぬるぬるで きたなかった'],
+  far:['入口から奥まで、歩くのが遠い','あるくのが とおくて つかれた'],
+  noshoe:['靴の置き場がなかった','くつを おく ところが なかった'],
+  nocook:['食堂が開いていなかった','しょくどうが やって なかった'],
+  price:['大人{a}円は、ちょっと高いな','おとなの おふろだいが ちょっと たかい'],
+  cprice:['子ども{a}円は高いよ','こどもの おふろだいが たかい'],
+  'wish:sauna':['サウナがあればなあ','サウナが あったら いいのに'],
+  'wish:open':['露天風呂があればなあ','そとの おふろが あったら いいのに'],
+  'wish:nocold':['水風呂がなくて、ととのわない','みずぶろが なくて サウナの あと こまった'],
+  'wish:rest':['湯上がりに休める場所がほしい','おふろの あと やすむ ところが ほしい'],
+  'wish:vending':['のどがかわいた。自販機がほしい','のどが かわいた。じはんきが ほしい'],
+  'wish:play':['子どもが退屈していた','ひまだった。あそびばが ほしい'],
+  'wish:arcade':['ゲームコーナーがあればいいのに','ゲームセンターが あったら いいのに'],
+  'wish:food':['お腹がすいた。食堂があればなあ','おなか すいた。しょくどうが ほしい'],
+  'wish:main_hot':['あつ湯に入りたかった','あつい おゆに はいりたかった'],
+  'wish:main_warm':['ぬる湯がよかった','ぬるい おゆが よかった'],
+  'wish:main_normal':['ふつうの温度のお湯がよかった','ふつうの おゆが よかった'],
+  gaveup:['{n}が混んでいて、あきらめた','{n}が こんでて あきらめた'],
+  totonou:['サウナと水風呂で、ととのった！','サウナと みずぶろ、さいこう！'],
+  snow:['雪見の露天風呂は最高','ゆきを みながらの おふろ、さいこう'],
+  open:['露天風呂が気持ちいい','そとの おふろ、きもちいい'],
+  milk:['湯上がりの一杯がうまい','おふろの あとの ジュースが おいしい'],
+  food:['食堂のごはんがおいしい','しょくどうの ごはん おいしい'],
+  play:['遊び場が楽しかった','あそびばが たのしかった'],
+  arcade:['ゲームが楽しかった','ゲーム たのしかった'],
+  rest:['休憩所でのんびりできた','やすむ ところで のんびり できた'],
+  easy:['待たずに入れて快適だった','またずに はいれた'],
+  happy:['いい湯だった。また来るよ','いい おゆ だった。また くるね'],
+  cheap:['この値段なら気軽に通える','おふろだいが やすくて うれしい'],
+  snowday:['外は雪。あったかい湯が身にしみる','そとは ゆき。おゆが あったかい'],
+  hotday:['暑い日でも、汗を流すとさっぱり','あつい ひでも おふろは さっぱり'],
+};
+function voiceText(v){
+  const [base,sub]=v.key.includes(':')?v.key.split(':'):[v.key,null];
+  let tpl=VOICE[v.key]||VOICE[base];if(!tpl)return v.key;
+  let s=tpl[K()?1:0];
+  if(sub)s=s.replace('{n}',nm(sub));
+  if(v.a!==undefined)s=s.replace('{a}',v.a);
+  return s;
+}
+function satRows(rep){
+  if(rep.avgSat===null)return '';
+  const P=rep.pen;const kid=K();
+  const items=[
+    [kid?'きた ときの きぶん':'来店時の気分',80],
+    [kid?'またされた':'待たされた',-P.wait],[kid?'こんでいた':'混雑',-P.crowd],[kid?'よごれていた':'汚れ',-P.dirty],
+    [kid?'ゆかの まちがい':'床のまちがい（裸で廊下など）',-P.floor],[kid?'ほしい ものが なかった':'ほしい設備がない',-P.wish],
+    [kid?'からだを あらえない':'洗い場がない',-P.nowash],[kid?'くつばこが ない':'下駄箱がない',-P.noshoe],
+    [kid?'おふろだいが たかい':'料金が高い',-P.price],[kid?'あるくのが とおい':'歩く距離',-P.far],[kid?'おこって かえった':'待ちきれず帰った',-P.angry],
+    [kid?'のんびり できた':'休憩',P.relax],[kid?'たべもの・あそび':'飲食・あそび',P.fun],[kid?'おふろが たのしい':'お風呂の楽しさ',P.spa],
+  ];
+  const rows=items.filter(([n,v],i)=>i===0||Math.abs(v)>=0.5).map(([n,v],i)=>`<tr class="sub"><td>${i===0?n:'　'+n}</td><td class="${i===0?'':v<0?'neg':'pos'}">${i===0?v+(kid?'てん':'点'):(v>0?'+':'−')+Math.abs(v).toFixed(1)}</td></tr>`).join('');
+  return rows+`<tr class="sub"><td colspan="2" style="text-align:left;font-family:var(--font-body)">${kid?'65てんより うえだと にんきが あがるよ。':'65点を境に、上なら評判が上がり、下なら下がります。'}</td></tr>`;
+}
+function hintsFor(rep){
+  const kid=K();const h=[];const V=k=>rep.voices.find(v=>v.key===k);
+  if(V('nostaff'))h.push(kid?'うけつけに 人を おこう（しゃちょうでも いいよ）。':'受付にスタッフを置きましょう（社長が担当してもOK）。');
+  if(rep.missing.reception||rep.missing.locker||rep.missing.main)h.push(kid?'いりぐちから うけつけ・きがえべや・おふろまで、ゆかで つながって いるか しらべよう。':'入口から受付・脱衣所・お風呂まで、床でつながっているか確認しましょう。');
+  if(V('wood')||V('tile'))h.push(kid?'きがえべやを ろうかの ゆかと おふろばの ゆかの あいだに おこう。':'脱衣所を、廊下の床（木）と浴場の床（タイル）の境目に置きましょう。');
+  const slow=rep.voices.find(v=>v.key.startsWith('slow:')||v.key.startsWith('angry:'));
+  if(slow){const k=slow.key.split(':')[1];h.push(kid?`${nm(k)}を ふやすと まつ 人が へるよ。`:`いちばん詰まっているのは${nm(k)}。増やすと回転が上がります。`)}
+  if(V('crowd'))h.push(kid?'おふろを おおきく するか、ふやそう。':'浴槽を大きくするか、数を増やしましょう。');
+  if(V('dirty'))h.push(kid?'そうじの 人を ふやそう。':'清掃スタッフを増やしましょう。きれいさが60%を切ると満足度が下がります。');
+  const wish=rep.voices.filter(v=>v.key.startsWith('wish:')).sort((a,b)=>b.n-a.n)[0];
+  if(wish){const w=wish.key.slice(5);const map={sauna:'b_sauna',open:'b_open',nocold:'b_cold',rest:'rest',vending:'vending',play:'play',arcade:'arcade',food:'food',main_hot:'b_hot',main_warm:'b_warm',main_normal:'b_normal'};
+    h.push(kid?`「${nm(map[w])}」が ほしい 人が ${wish.n}にん いたよ。`:`「${nm(map[w])}」を求める声が${wish.n}人分。置くと満足度と客数が伸びます。`)}
+  if(V('price')||V('cprice'))h.push(kid?'おふろだいを すこし さげて みよう。':'料金が高めです。客数と満足度を見ながら調整しましょう。');
+  if(rep.temp>15)h.push(kid?'なつは おきゃくさんが へるけど、おゆを わかす おかねも へるよ。':'夏の旭川は客足が落ちます。燃料費が下がる今のうちに、冬に向けて設備を整える時期です。');
+  if(rep.temp<0)h.push(kid?'ふゆは おきゃくさんが ふえるけど、おゆを わかす おかねも たくさん かかるよ。':'真冬は客が増える一方、燃料費もかさみます。');
+  if(rep.profit<0)h.push(kid?'あかじ だよ。はたらく 人の かずや おふろだいを みなおそう。':'赤字です。スタッフの人数や料金を見直しましょう。');
+  if(!h.length)h.push(kid?'じゅんちょう！ つぎは なにを つくろうかな？':'順調です。新しい設備で客層を広げるのも手です。');
+  return h.slice(0,5);
+}
+let lastRep=null;
+function showReport(rep){
+  lastRep=rep;running=false;
+  const kid=K();
+  const sign=v=>`<span class="${v<0?'neg':'pos'}">${v<0?'':'+'}${yen(v)}</span>`;
+  const waits=Object.entries(rep.waits).filter(([k,v])=>v>=0.5).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${nm(k)} ${v.toFixed(1)}${kid?'ふん':'分'}`).join('／')||(kid?'まちなし':'待ちなし');
+  const hist=g.history.slice(-6).map(h=>`<tr><td>${h.y}/${h.m+1}</td><td>${h.visitors}${kid?'にん/にち':'人/日'}　${sign(h.profit)}</td></tr>`).join('');
+  document.getElementById('rTitle').textContent=kid
+    ?`${rep.year}ねん ${rep.month+1}がつの けっさん（へいじつ ${rep.nWd}にち・やすみ ${rep.nHd}にち）`
+    :`${rep.label}の決算（平日${rep.nWd}日・休日${rep.nHd}日／平均${rep.temp.toFixed(1)}℃）`;
+  const L=kid
+    ?{vis:'きた 人',sat:'まんぞく',wait:'まった じかん',rep:'にんき',bath:'おふろだい',vend:'じはんきの うりあげ',food:'しょくどうの うりあげ',arcade:'ゲームの うりあげ',fuel:'おゆを わかす おかね',elec:'でんき・すいどうの おかね',staff:'はたらく 人の おきゅうりょう',up:'せつびの おていれだい',profit:'こんげつの もうけ',voice:'おきゃくさんの こえ',plan:'らいげつの さくせん',hist:'これまで',wdv:'へいじつ',hdv:'やすみのひ'}
+    :{vis:'1日の来客',sat:'平均満足度',wait:'平均待ち時間',rep:'評判',bath:'入浴料',vend:'自販機の売上',food:'食堂の売上',arcade:'ゲームセンターの売上',fuel:'燃料費（お湯をわかす）',elec:'電気・水道代',staff:`人件費（雇用${rep.hired}人）`,up:'設備の維持費',profit:'今月の利益',voice:'利用者の声',plan:'来月の作戦',hist:'これまでの月',wdv:'平日',hdv:'休日'};
+  const money=[['bath',rep.rev.bath,1],['vend',rep.rev.vend,1],['food',rep.rev.food,1],['arcade',rep.rev.arcade,1],['fuel',rep.cost.fuel,-1],['elec',rep.cost.elec,-1],['staff',rep.cost.staff,-1],['up',rep.cost.up,-1]]
+    .filter(([k,v,s])=>s<0||v>0).map(([k,v,s])=>`<tr><td>${L[k]}</td><td>${s<0?'−':''}${yen(v)}</td></tr>`).join('');
+  document.getElementById('rBody').innerHTML=`
+    <table>
+      <tr><td>${L.vis}</td><td>${L.wdv} ${rep.wd.visitors}${kid?'にん':'人'}／${L.hdv} ${rep.hd.visitors}${kid?'にん':'人'}</td></tr>
+      <tr><td>${L.sat}</td><td>${rep.avgSat===null?'-':Math.round(rep.avgSat)+(kid?'てん':'点')}</td></tr>${satRows(rep)}
+      <tr><td>${L.wait}</td><td style="font-size:12px">${waits}</td></tr>
+      <tr><td>${L.rep}</td><td>${stars(rep.repBefore)} → ${stars(rep.repAfter)}</td></tr>
+    </table>
+    <table>${money}<tr class="total"><td>${L.profit}</td><td>${sign(rep.profit)}</td></tr></table>
+    <div class="sec">${L.voice}<span style="color:var(--muted);font-size:12px">　${kid?`（${rep.voiceN}にんに きいたよ）`:`（平日と休日のお客さん${rep.voiceN}人）`}</span></div>
+    <ul class="voices">${rep.voices.length?rep.voices.map(v=>`<li><span class="q"><em class="tg ${v.kind}">${v.kind==='bad'?(kid?'こまった':'不満'):v.kind==='good'?(kid?'うれしい':'好評'):(kid?'ひとこと':'つぶやき')}</em>「${voiceText(v)}」</span>${v.n?`<span class="n">${v.n}${kid?'にん':'人'}</span>`:''}</li>`).join(''):`<li>${kid?'おきゃくさんが こなかった':'来店がありませんでした'}</li>`}</ul>
+    <div class="sec">${L.plan}</div>
+    <ul class="hints">${hintsFor(rep).map(h=>`<li>${h}</li>`).join('')}</ul>
+    ${g.history.length>1?`<div class="sec">${L.hist}</div><table>${hist}</table>`:''}
+    ${g.money<0?`<p class="neg" style="margin:0">${kid?'おかねが マイナス だよ！':'資金がマイナスです。'}</p>`:''}`;
+  document.getElementById('rPause').textContent=kid?'とめて じゅんび してから はじめる':'止めて準備してから始める';
+  document.getElementById('rGo').textContent=kid?`この はやさで つづける（×${pref.speed||2}）`:`このままの速さで続ける（×${pref.speed||2}）`;
+  document.getElementById('modal').hidden=false;
+  document.getElementById('rGo').focus();
+}
+function nextMonth(go){
+  document.getElementById('modal').hidden=true;
+  g.dayIdx=0;g.days=[];d=SIM.startDay(g,'wd');
+  if(go){g.phase='run';speed=pref.speed||2}else{g.phase='ready'}
+  save();syncSpeed();syncPhase();renderFormula();
+}
+document.getElementById('rPause').addEventListener('click',()=>nextMonth(false));
+document.getElementById('rGo').addEventListener('click',()=>nextMonth(true));
+
+function dayOver(){
+  const sum=SIM.summarizeDay(g,d);
+  if(g.dayIdx===0){
+    g.days=[sum];g.dayIdx=1;d=SIM.startDay(g,'hd');save();
+    toast(K()?`へいじつ おわり！ ${sum.visitors}にん きたよ。つぎは やすみのひ`:`平日終了：${sum.visitors}人来店。次は休日です`);
+    renderFormula();
+  }else{
+    const days=[g.days[0],sum];g.days=[];g.dayIdx=0;
+    const rep=SIM.endMonth(g,days);save();showReport(rep);
+  }
+}
+
+/* ---------- loop ---------- */
+let lastT=performance.now(),acc=0,hudT=0;
+const TICK=0.1,GM_PER_SEC=3;
+function loop(now){
+  const dt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+  if(running&&speed>0){
+    acc+=dt*speed*GM_PER_SEC;let n=0;
+    while(acc>=TICK&&n<600){SIM.tick(g,d,TICK);acc-=TICK;n++;if(d.over){acc=0;dayOver();break}}
+  }
+  render(now,dt);
+  if(now-hudT>150){hud();hudT=now}
+  requestAnimationFrame(loop);
+}
+syncSpeed();applyLang();syncPhase();requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
